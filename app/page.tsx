@@ -118,7 +118,7 @@ export default function Home() {
       {!isOpened && (
         <motion.div 
           // Background sekarang ngambil dari assets/images/background.png
-          className="absolute inset-0 bg-[#2b1d14] bg-[url('/assets/images/background.png')] bg-cover bg-center flex items-center justify-center shadow-[inset_0_0_200px_120px_rgba(0,0,0,0.95)]"
+          className="absolute inset-0 bg-[#2b1d14] bg-[url('/assets/images/bg.jpg')] bg-cover bg-center flex items-center justify-center shadow-[inset_0_0_200px_120px_rgba(0,0,0,0.95)]"
           exit={{ opacity: 0 }}
         >
           {/* EFEK KABUT (FOG) DARI AWAN.PNG */}
@@ -137,15 +137,15 @@ export default function Home() {
             <p className="z-10 drop-shadow-[0_2px_5px_rgba(0,0,0,1)]">Memuat memori...</p>
           </motion.div>
 
-          {/* BUKU PELENGKAP SUDUT */}
+{/* BUKU PELENGKAP SUDUT (Udah digedein ukurannya) */}
           <motion.img 
-            src="/assets/images/sampul-belakang.png"
-            className="absolute top-[15%] left-[15%] -rotate-12 w-[160px] h-[240px] rounded shadow-[6px_12px_25px_rgba(0,0,0,0.8)] object-cover filter brightness-50 pointer-events-none" 
+            src="/assets/images/buku-element.png"
+            className="absolute top-[10%] left-[10%] -rotate-12 w-[340px] h-[340px] drop-shadow-[6px_12px_15px_rgba(0,0,0,0.9)] object-contain brightness-50 pointer-events-none" 
             alt="Buku Pelengkap 1"
           />
           <motion.img 
-            src="/assets/images/sampul-belakang.png"
-            className="absolute bottom-[20%] right-[20%] rotate-[20deg] w-[160px] h-[240px] rounded shadow-[6px_12px_25px_rgba(0,0,0,0.8)] object-cover filter brightness-50 pointer-events-none" 
+            src="/assets/images/buku-element.png"
+            className="absolute bottom-[15%] right-[15%] rotate-[20deg] w-[370px] h-[340px] drop-shadow-[6px_12px_15px_rgba(0,0,0,0.9)] object-contain brightness-50 pointer-events-none" 
             alt="Buku Pelengkap 2"
           />
 
