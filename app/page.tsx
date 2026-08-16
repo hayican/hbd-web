@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
+import MiniGamePage from "./components/MiniGamePage"; // <-- Import komponen di sini
 
 export default function Home() {
   const [isOpened, setIsOpened] = useState(false);
@@ -10,13 +11,6 @@ export default function Home() {
 
   // State sekarang ngitung "LEMBAR KERTAS" (0 sampai 5)
   const [currentSheet, setCurrentSheet] = useState(0);
-
-  // FIX BUG "KETIMPA" PAS BALIK:
-  // Nyimpen index kertas yang lagi dalam proses animasi (baik maju/mundur),
-  // biar selama animasi jalan, kertas itu dikasih z-index PALING TINGGI sementara.
-  // Tanpa ini, begitu currentSheet berubah, status isFlipped langsung berubah
-  // duluan sebelum rotateY-nya kelar animasi -> kertas keburu dianggap "belum
-  // flipped" padahal masih di sudut -90an -> ketutup kertas tetangganya.
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
 
   const pages = [
@@ -49,13 +43,10 @@ export default function Home() {
 
   // ==========================================
   // SOUND EFFECTS
-  // Taro file suara lu di /public/assets/sfx/
-  // - page-flip.mp3  : suara kertas dibalik
-  // - book-open.mp3  : suara buku dibuka (whoosh)
-  // Native Audio API, ringan, gak perlu library tambahan.
   // ==========================================
   const flipAudioRef = useRef<HTMLAudioElement | null>(null);
   const openAudioRef = useRef<HTMLAudioElement | null>(null);
+  const bgMusicRef = useRef<HTMLAudioElement | null>(null);
 
   const playFlipSound = useCallback(() => {
     if (!flipAudioRef.current) {
@@ -64,10 +55,7 @@ export default function Home() {
     const audio = flipAudioRef.current;
     audio.currentTime = 0;
     audio.volume = 0.55;
-    audio.play().catch(() => {
-      // Browser kadang block autoplay sebelum ada interaksi user pertama,
-      // tapi karena ini dipicu dari onClick, harusnya aman.
-    });
+    audio.play().catch(() => {});
   }, []);
 
   const playOpenSound = useCallback(() => {
@@ -80,9 +68,43 @@ export default function Home() {
     audio.play().catch(() => {});
   }, []);
 
+  // Fungsi memutar bg-sound dengan pengecekan aman
+  const playBgMusic = useCallback(() => {
+    if (!bgMusicRef.current) {
+      bgMusicRef.current = new Audio("/assets/sfx/bg-sound.mp3");
+      bgMusicRef.current.loop = true;
+      bgMusicRef.current.volume = 1.0;
+    }
+    
+    if (bgMusicRef.current.paused) {
+      const playPromise = bgMusicRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.warn("Autoplay dicegah oleh browser. Audio akan diputar saat user berinteraksi.", error);
+        });
+      }
+    }
+  }, []);
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      if (bgMusicRef.current) {
+        bgMusicRef.current.pause();
+        bgMusicRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
+  const handleDragStart = () => {
+    playBgMusic();
+  };
+
   const handleBookClick = () => {
     setShowFlash(true);
     playOpenSound();
+    playBgMusic();
+
     setTimeout(() => {
       confetti({
         particleCount: 200,
@@ -101,7 +123,7 @@ export default function Home() {
     setCurrentSheet((prev) => {
       if (prev >= sheets.length) return prev;
       playFlipSound();
-      setAnimatingIndex(prev); // kertas yang lagi maju diflip
+      setAnimatingIndex(prev); 
       setTimeout(() => setAnimatingIndex(null), 850);
       return prev + 1;
     });
@@ -111,7 +133,7 @@ export default function Home() {
     setCurrentSheet((prev) => {
       if (prev <= 0) return prev;
       playFlipSound();
-      setAnimatingIndex(prev - 1); // kertas yang lagi dibalik mundur
+      setAnimatingIndex(prev - 1); 
       setTimeout(() => setAnimatingIndex(null), 850);
       return prev - 1;
     });
@@ -119,7 +141,7 @@ export default function Home() {
 
   return (
     <main className="relative h-[100dvh] w-screen overflow-hidden bg-black font-serif">
-      {/* SCENE 1: MEJA BERSERAKAN — tetep render terus, jadi background di belakang buku */}
+      {/* SCENE 1: MEJA BERSERAKAN */}
       <motion.div className="absolute inset-0 bg-[#2b1d14] bg-[url('/assets/images/bg.jpg')] bg-cover bg-center flex items-center justify-center shadow-[inset_0_0_200px_120px_rgba(0,0,0,0.95)]">
         <div className="absolute inset-0 z-[60] pointer-events-none overflow-hidden flex flex-col">
           <motion.div
@@ -185,6 +207,7 @@ export default function Home() {
             src={item.src}
             drag={!isOpened}
             dragMomentum={false}
+            onDragStart={handleDragStart} 
             initial={{ rotate: item.rotate }}
             animate={{ opacity: isOpened ? 0 : 1 }}
             transition={{ opacity: { duration: 0.6 } }}
@@ -218,7 +241,7 @@ export default function Home() {
       {isOpened && !showFlash && (
         <div className="absolute inset-0 z-40 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center overflow-hidden">
           <motion.div
-            className="absolute top-1/2 left-1/2 w-[350px] h-[500px] md:w-[400px] md:h-[600px] rounded-lg ring-1 ring-black/10 drop-shadow-[0_20px_35px_rgba(0,0,0,0.9)]"
+            className="absolute top-1/2 left-1/2 w-[350px] h-[500px] md:w-[400px] md:h-[600px] rounded-lg drop-shadow-[0_20px_35px_rgba(0,0,0,0.9)]"
             style={{ perspective: "2500px", y: "-50%" }}
             animate={{ x: currentSheet === 0 ? "-50%" : currentSheet === sheets.length ? "50%" : "0%" }}
             transition={{ duration: 0.8, ease: "easeInOut" }}
@@ -228,10 +251,6 @@ export default function Home() {
               const isClickable = index === currentSheet || index === currentSheet - 1;
               const isAnimating = animatingIndex === index;
 
-              // FIX Z-INDEX SAAT PREV:
-              // Selama kertas ini masih dalam proses animasi (maju ATAU mundur),
-              // paksa dia jadi paling atas biar gak ketimpa kertas tetangga
-              // di tengah-tengah rotasi. Begitu animasi kelar, balik ke aturan normal.
               let zIndex: number;
               if (isAnimating) {
                 zIndex = 999;
@@ -262,16 +281,17 @@ export default function Home() {
                 >
                   {/* SISI DEPAN KERTAS (Halaman Kanan) */}
                   <div
-                    className="absolute inset-0 bg-[#f4e8d4] rounded-r-lg overflow-hidden border border-black/20"
+                    className="absolute inset-0 bg-[#f4e8d4] rounded-r-lg overflow-hidden"
                     style={{ backfaceVisibility: "hidden" }}
                   >
                     <img src={sheet.front} className="w-full h-full object-cover" alt="Front" />
+                    
+                    {/* ====== MINI GAME DI-INJECT DI SINI ====== */}
+                    {index === 2 && <MiniGamePage />}
+                    {/* ========================================= */}
+
                     <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-black/50 to-transparent z-10 pointer-events-none" />
                     <div className="absolute top-0 bottom-0 right-0 w-[3px] bg-gradient-to-l from-black/25 to-transparent z-10 pointer-events-none" />
-                    {/* PAGE CURL SHADOW DINAMIS
-                        Muncul cuma pas kertas ini lagi dianimasikan, opacity-nya
-                        naik-turun ngikutin fase animasi (paling gelap pas kertas
-                        tegak lurus di tengah putaran ~90deg, transparan di awal/akhir). */}
                     {isAnimating && (
                       <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-black/0 via-black/40 to-black/0 pointer-events-none z-20"
@@ -284,7 +304,7 @@ export default function Home() {
 
                   {/* SISI BELAKANG KERTAS (Halaman Kiri) */}
                   <div
-                    className="absolute inset-0 bg-[#f4e8d4] rounded-l-lg overflow-hidden border border-black/20"
+                    className="absolute inset-0 bg-[#f4e8d4] rounded-l-lg overflow-hidden"
                     style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                   >
                     <img src={sheet.back} className="w-full h-full object-cover" alt="Back" />
@@ -300,7 +320,7 @@ export default function Home() {
                     )}
                   </div>
 
-                  {/* Ambient contact shadow yang jatuh ke kertas di baliknya selama animasi */}
+                  {/* Ambient contact shadow */}
                   {isAnimating && (
                     <motion.div
                       className="absolute inset-0 bg-black pointer-events-none"
@@ -316,7 +336,7 @@ export default function Home() {
           </motion.div>
 
           {/* TOMBOL NAVIGASI */}
-          <div className="absolute bottom-10 left-0 right-0 flex justify-center items-center gap-6 z-50">
+          <div className="absolute bottom-5 left-0 right-0 flex justify-center items-center gap-6 z-50">
             <button
               onClick={prevSheet}
               disabled={currentSheet === 0}
