@@ -21,121 +21,115 @@ interface MusicPageProps {
 }
 
 export default function MusicPage({ audioRef }: MusicPageProps) {
-  // State untuk menangkap instance audio dari luar agar tombol tidak "kosong"
-  const [audioInstance, setAudioInstance] = useState<HTMLAudioElement | null>(null);
-  
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  const currentIndexRef = useRef(0);
+  // FIX: guard defensif -- kalo prop audioRef gak ke-pass dari parent (undefined),
+  // getAudio() balikin null aja daripada crash "Cannot read properties of undefined".
+  const getAudio = () => audioRef?.current ?? null;
 
-  // 1. Tangkap audio instance dari parent (page.tsx) secara reaktif
-  useEffect(() => {
-    const checkAudio = () => {
-      if (audioRef.current && audioRef.current !== audioInstance) {
-        setAudioInstance(audioRef.current);
-      }
-    };
-    
-    checkAudio();
-    const interval = setInterval(checkAudio, 200); // Polling sampai audio tersedia
-    return () => clearInterval(interval);
-  }, [audioRef, audioInstance]);
-
-  // 2. Fungsi putar lagu yang ke-binding dengan audioInstance asli
   const playTrack = useCallback(
     (index: number) => {
-      if (!audioInstance) return;
-      
-      setCurrentSongIndex(index);
-      currentIndexRef.current = index;
+      const audio = getAudio();
+      if (!audio) return;
 
-      audioInstance.pause();
-      audioInstance.src = PLAYLIST[index].src;
-      audioInstance.load();
-      audioInstance
+      setCurrentSongIndex(index); // FIX: update index SEBELUM ganti src, biar UI langsung sinkron
+
+      audio.pause();
+      audio.src = PLAYLIST[index].src;
+      audio.load();
+      audio
         .play()
         .then(() => setIsPlaying(true))
         .catch((err) => console.warn("Playback error:", err));
     },
-    [audioInstance]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [audioRef]
   );
 
   const nextSong = useCallback(() => {
-    const nextIdx = (currentIndexRef.current + 1) % PLAYLIST.length;
-    playTrack(nextIdx);
+    setCurrentSongIndex((prevIndex) => {
+      const nextIdx = (prevIndex + 1) % PLAYLIST.length;
+      playTrack(nextIdx);
+      return nextIdx;
+    });
   }, [playTrack]);
 
   const prevSong = useCallback(() => {
-    const prevIdx = (currentIndexRef.current - 1 + PLAYLIST.length) % PLAYLIST.length;
-    playTrack(prevIdx);
+    setCurrentSongIndex((prevIndex) => {
+      const prevIdx = (prevIndex - 1 + PLAYLIST.length) % PLAYLIST.length;
+      playTrack(prevIdx);
+      return prevIdx;
+    });
   }, [playTrack]);
 
-  // 3. Pasang Listener setelah audioInstance didapatkan
+  // FIX: pasang listener SEKALI pas komponen mount, bukan bergantung ke
+  // `audioInstance` yang didapat dari polling (yang gak pernah berubah reference-nya
+  // sehingga effect gak pernah re-run pas ganti lagu).
   useEffect(() => {
-    if (!audioInstance) return;
+    if (!audioRef) return; // guard: kalo prop gak ke-pass sama sekali, skip diem-diem
+    const audio = getAudio();
+    if (!audio) return;
 
-    // Sinkronisasi index lagu dari src yang sedang berjalan
-    const currentSrc = audioInstance.src;
-    const foundIndex = PLAYLIST.findIndex(
-      (song) => currentSrc.includes(song.src) || song.src.includes(currentSrc)
-    );
-    if (foundIndex !== -1) {
-      setCurrentSongIndex(foundIndex);
-      currentIndexRef.current = foundIndex;
-    }
-
-    setIsPlaying(!audioInstance.paused);
-    setProgress(audioInstance.currentTime || 0);
-    if (audioInstance.duration && !isNaN(audioInstance.duration)) {
-      setDuration(audioInstance.duration);
-    }
+    setIsPlaying(!audio.paused);
+    setProgress(audio.currentTime || 0);
+    if (audio.duration && !isNaN(audio.duration)) setDuration(audio.duration);
 
     const updateProgress = () => {
-      setProgress(audioInstance.currentTime || 0);
-      if (audioInstance.duration && !isNaN(audioInstance.duration)) {
-        setDuration(audioInstance.duration);
-      }
+      setProgress(audio.currentTime || 0);
+      if (audio.duration && !isNaN(audio.duration)) setDuration(audio.duration);
     };
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
     const handleEnded = () => nextSong();
 
-    audioInstance.addEventListener("timeupdate", updateProgress);
-    audioInstance.addEventListener("play", handlePlay);
-    audioInstance.addEventListener("pause", handlePause);
-    audioInstance.addEventListener("ended", handleEnded);
-    audioInstance.addEventListener("loadedmetadata", updateProgress);
+    audio.addEventListener("timeupdate", updateProgress);
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("loadedmetadata", updateProgress);
 
     return () => {
-      audioInstance.removeEventListener("timeupdate", updateProgress);
-      audioInstance.removeEventListener("play", handlePlay);
-      audioInstance.removeEventListener("pause", handlePause);
-      audioInstance.removeEventListener("ended", handleEnded);
-      audioInstance.removeEventListener("loadedmetadata", updateProgress);
+      audio.removeEventListener("timeupdate", updateProgress);
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("loadedmetadata", updateProgress);
     };
-  }, [audioInstance, nextSong]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextSong]);
 
-  const togglePlay = () => {
-    if (!audioInstance) return;
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const audio = getAudio();
+    if (!audio) return;
 
-    if (audioInstance.paused) {
-      audioInstance.play().then(() => setIsPlaying(true)).catch(() => {});
+    if (audio.paused) {
+      audio.play().then(() => setIsPlaying(true)).catch(() => {});
     } else {
-      audioInstance.pause();
+      audio.pause();
       setIsPlaying(false);
     }
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    nextSong();
+  };
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    prevSong();
   };
 
   const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = Number(e.target.value);
     setProgress(val);
-    if (audioInstance) {
-      audioInstance.currentTime = val;
-    }
+    const audio = getAudio();
+    if (audio) audio.currentTime = val;
   };
 
   const formatTime = (time: number) => {
@@ -150,7 +144,6 @@ export default function MusicPage({ audioRef }: MusicPageProps) {
       className="absolute inset-0 flex flex-col items-center justify-center z-20 pb-12 select-none"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Piringan Hitam */}
       <motion.img
         src="/assets/images/piringan.png"
         alt="Piringan Hitam"
@@ -159,7 +152,6 @@ export default function MusicPage({ audioRef }: MusicPageProps) {
         transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
       />
 
-      {/* Info Lagu */}
       <div className="text-center mb-4 px-4">
         <h3 className={`${ebGaramond.className} text-2xl mt-10 text-[#7C1E1F] font-bold tracking-wide drop-shadow-sm`}>
           {PLAYLIST[currentSongIndex].title}
@@ -169,7 +161,6 @@ export default function MusicPage({ audioRef }: MusicPageProps) {
         </p>
       </div>
 
-      {/* Progress Bar dengan Efek Hover */}
       <div className="w-[85%] max-w-[260px] flex flex-col items-center mb-6">
         <input
           type="range"
@@ -186,10 +177,9 @@ export default function MusicPage({ audioRef }: MusicPageProps) {
         </div>
       </div>
 
-      {/* Tombol Navigasi dengan Efek Hover */}
       <div className="flex items-center gap-6 relative z-50 pointer-events-auto">
         <button
-          onClick={prevSong}
+          onClick={handlePrev}
           className="w-11 h-11 flex items-center justify-center rounded-full bg-[#7C1E1F] hover:bg-[#5A1516] hover:scale-110 text-[#f4e8d4] transition-all active:scale-95 shadow-md hover:shadow-lg"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
@@ -213,7 +203,7 @@ export default function MusicPage({ audioRef }: MusicPageProps) {
         </button>
 
         <button
-          onClick={nextSong}
+          onClick={handleNext}
           className="w-11 h-11 flex items-center justify-center rounded-full bg-[#7C1E1F] hover:bg-[#5A1516] hover:scale-110 text-[#f4e8d4] transition-all active:scale-95 shadow-md hover:shadow-lg"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">

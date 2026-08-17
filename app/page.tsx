@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import MiniGamePage from "./components/MiniGamePage"; 
+import MiniGamePage from "./components/MiniGamePage"; // <-- Import komponen di sini
 import MessagePage from "./components/MessagePage";
 import MusicPage from "./components/MusicPage";
 import CandleCake from "./components/CandleCake";
@@ -12,6 +12,7 @@ export default function Home() {
   const [isOpened, setIsOpened] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
 
+  // State sekarang ngitung "LEMBAR KERTAS" (0 sampai 5)
   const [currentSheet, setCurrentSheet] = useState(0);
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
 
@@ -43,6 +44,9 @@ export default function Home() {
     { id: 4, src: "/assets/images/amplop-tua.png", rotate: 7, zIndex: 48, width: 240, height: 160 },
   ];
 
+  // ==========================================
+  // SOUND EFFECTS
+  // ==========================================
   const flipAudioRef = useRef<HTMLAudioElement | null>(null);
   const openAudioRef = useRef<HTMLAudioElement | null>(null);
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -67,19 +71,25 @@ export default function Home() {
     audio.play().catch(() => {});
   }, []);
 
+  // Fungsi memutar bg-sound dengan pengecekan aman
   const playBgMusic = useCallback(() => {
-    if (!bgMusicRef.current && typeof window !== "undefined") {
+    if (!bgMusicRef.current) {
       bgMusicRef.current = new Audio("/assets/sfx/bg-sound.mp3");
+      bgMusicRef.current.loop = true;
       bgMusicRef.current.volume = 1.0;
     }
 
-    if (bgMusicRef.current && bgMusicRef.current.paused) {
-      bgMusicRef.current.play().catch((error) => {
-        console.warn("Autoplay dicegah browser.", error);
-      });
+    if (bgMusicRef.current.paused) {
+      const playPromise = bgMusicRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.warn("Autoplay dicegah oleh browser. Audio akan diputar saat user berinteraksi.", error);
+        });
+      }
     }
   }, []);
 
+  // Cleanup effect
   useEffect(() => {
     return () => {
       if (bgMusicRef.current) {
@@ -89,7 +99,9 @@ export default function Home() {
     };
   }, []);
 
-  const handleDragStart = () => playBgMusic();
+  const handleDragStart = () => {
+    playBgMusic();
+  };
 
   const handleBookClick = () => {
     setShowFlash(true);
@@ -105,7 +117,9 @@ export default function Home() {
       });
       setIsOpened(true);
     }, 400);
-    setTimeout(() => setShowFlash(false), 900);
+    setTimeout(() => {
+      setShowFlash(false);
+    }, 900);
   };
 
   const nextSheet = () => {
@@ -130,11 +144,15 @@ export default function Home() {
 
   return (
     <main className="relative h-[100dvh] w-screen overflow-hidden bg-black font-serif">
+      {/* SCENE 1: MEJA BERSERAKAN */}
       <motion.div className="absolute inset-0 bg-[#2b1d14] bg-[url('/assets/images/bg.jpg')] bg-cover bg-center flex items-center justify-center shadow-[inset_0_0_200px_120px_rgba(0,0,0,0.95)]">
         <div className="absolute inset-0 z-[60] pointer-events-none overflow-hidden flex flex-col">
           <motion.div
             className="w-full h-1/2"
-            style={{ WebkitMaskImage: "linear-gradient(to bottom, black 60%, transparent 100%)", maskImage: "linear-gradient(to bottom, black 60%, transparent 100%)" }}
+            style={{
+              WebkitMaskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
+              maskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
+            }}
             initial={{ y: 0, opacity: 1 }}
             animate={{ y: "-100%", opacity: 0 }}
             transition={{ duration: 2.5, delay: 0.5, ease: "easeInOut" }}
@@ -144,7 +162,10 @@ export default function Home() {
 
           <motion.div
             className="w-full h-1/2"
-            style={{ WebkitMaskImage: "linear-gradient(to top, black 60%, transparent 100%)", maskImage: "linear-gradient(to top, black 60%, transparent 100%)" }}
+            style={{
+              WebkitMaskImage: "linear-gradient(to top, black 60%, transparent 100%)",
+              maskImage: "linear-gradient(to top, black 60%, transparent 100%)",
+            }}
             initial={{ y: 0, opacity: 1 }}
             animate={{ y: "100%", opacity: 0 }}
             transition={{ duration: 2.5, delay: 0.5, ease: "easeInOut" }}
@@ -170,7 +191,13 @@ export default function Home() {
           <motion.img
             src="/assets/images/sampul-depan.png"
             className="absolute w-[220px] h-[320px] rounded z-40 cursor-pointer object-cover"
-            animate={{ boxShadow: ["0px 0px 15px rgba(255,215,0,0.4)", "0px 0px 50px rgba(255,215,0,1)", "0px 0px 15px rgba(255,215,0,0.4)"] }}
+            animate={{
+              boxShadow: [
+                "0px 0px 15px rgba(255,215,0,0.4)",
+                "0px 0px 50px rgba(255,215,0,1)",
+                "0px 0px 15px rgba(255,215,0,0.4)",
+              ],
+            }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             whileTap={{ scale: 0.95 }}
             onClick={handleBookClick}
@@ -189,11 +216,18 @@ export default function Home() {
             transition={{ opacity: { duration: 0.6 } }}
             whileDrag={{ scale: 1.05, boxShadow: "15px 25px 40px rgba(0,0,0,0.9)", cursor: "grabbing" }}
             className="absolute rounded cursor-grab object-contain drop-shadow-[8px_12px_15px_rgba(0,0,0,0.8)] select-none"
-            style={{ width: item.width, height: item.height, zIndex: item.zIndex, touchAction: "none", pointerEvents: isOpened ? "none" : "auto" }}
+            style={{
+              width: item.width,
+              height: item.height,
+              zIndex: item.zIndex,
+              touchAction: "none",
+              pointerEvents: isOpened ? "none" : "auto",
+            }}
           />
         ))}
       </motion.div>
 
+      {/* SCENE 2: FLASH */}
       <AnimatePresence>
         {showFlash && (
           <motion.div
@@ -206,6 +240,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
+      {/* SCENE 3: REAL 3D BOOK FLIP */}
       {isOpened && !showFlash && (
         <div className="absolute inset-0 z-40 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center overflow-hidden">
           <motion.div
@@ -218,17 +253,27 @@ export default function Home() {
               const isFlipped = index < currentSheet;
               const isClickable = index === currentSheet || index === currentSheet - 1;
               const isAnimating = animatingIndex === index;
+
               let zIndex: number;
-              
-              if (isAnimating) { zIndex = 999; } 
-              else if (isFlipped) { zIndex = sheets.length + index; } 
-              else { zIndex = sheets.length - index; }
+              if (isAnimating) {
+                zIndex = 999;
+              } else if (isFlipped) {
+                zIndex = sheets.length + index;
+              } else {
+                zIndex = sheets.length - index;
+              }
 
               return (
                 <motion.div
                   key={index}
                   className="absolute top-0 left-0 w-full h-full"
-                  style={{ transformOrigin: "left center", transformStyle: "preserve-3d", zIndex, pointerEvents: isClickable ? "auto" : "none", cursor: isClickable ? "pointer" : "default" }}
+                  style={{
+                    transformOrigin: "left center",
+                    transformStyle: "preserve-3d",
+                    zIndex,
+                    pointerEvents: isClickable ? "auto" : "none",
+                    cursor: isClickable ? "pointer" : "default",
+                  }}
                   initial={false}
                   animate={{ rotateY: isFlipped ? -180 : 0 }}
                   transition={{ duration: 0.8, ease: "easeInOut" }}
@@ -237,16 +282,20 @@ export default function Home() {
                     isFlipped ? prevSheet() : nextSheet();
                   }}
                 >
-                  {/* SISI DEPAN KERTAS */}
+                  {/* SISI DEPAN KERTAS (Halaman Kanan) */}
                   <div
                     className="absolute inset-0 bg-[#f4e8d4] rounded-r-lg overflow-hidden"
-                    style={{ backfaceVisibility: "hidden" }}
+                    style={{ backfaceVisibility: "hidden", pointerEvents: isFlipped ? "none" : "auto" }}
                   >
                     <img src={sheet.front} className="w-full h-full object-cover" alt="Front" />
 
+                    {/* ====== MINI GAME DI-INJECT DI SINI ====== */}
                     {index === 2 && <MiniGamePage />}
+                    {/* ====== HALAMAN SURAT/AMPLOP ====== */}
                     {index === 3 && <MessagePage />}
+                    {/* ====== HALAMAN KUE: TIUP LILIN -> CONFETTI ====== */}
                     {index === 4 && <CandleCake />}
+                    {/* ========================================= */}
 
                     <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-black/50 to-transparent z-10 pointer-events-none" />
                     <div className="absolute top-0 bottom-0 right-0 w-[3px] bg-gradient-to-l from-black/25 to-transparent z-10 pointer-events-none" />
@@ -260,14 +309,16 @@ export default function Home() {
                     )}
                   </div>
 
-                  {/* SISI BELAKANG KERTAS */}
+                  {/* SISI BELAKANG KERTAS (Halaman Kiri) */}
                   <div
                     className="absolute inset-0 bg-[#f4e8d4] rounded-l-lg overflow-hidden"
-                    style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+                    style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", pointerEvents: isFlipped ? "auto" : "none" }}
                   >
                     <img src={sheet.back} className="w-full h-full object-cover" alt="Back" />
 
+                    {/* ====== HALAMAN MUSIK: PIRINGAN HITAM (ganti track bg-sound) ====== */}
                     {index === 3 && <MusicPage audioRef={bgMusicRef} />}
+                    {/* =================================================================== */}
 
                     <div className="absolute top-0 bottom-0 right-0 w-8 bg-gradient-to-l from-black/50 to-transparent z-10 pointer-events-none" />
                     <div className="absolute top-0 bottom-0 left-0 w-[3px] bg-gradient-to-r from-black/25 to-transparent z-10 pointer-events-none" />
@@ -281,6 +332,7 @@ export default function Home() {
                     )}
                   </div>
 
+                  {/* Ambient contact shadow */}
                   {isAnimating && (
                     <motion.div
                       className="absolute inset-0 bg-black pointer-events-none"
@@ -295,12 +347,15 @@ export default function Home() {
             })}
           </motion.div>
 
+          {/* TOMBOL NAVIGASI */}
           <div className="absolute bottom-5 left-0 right-0 flex justify-center items-center gap-6 z-50">
             <button
               onClick={prevSheet}
               disabled={currentSheet === 0}
               className={`px-6 py-2 rounded-full font-bold transition-all ${
-                currentSheet === 0 ? "bg-zinc-800 text-zinc-600 cursor-not-allowed" : "bg-zinc-700 text-white hover:bg-zinc-600 active:scale-95 shadow-lg"
+                currentSheet === 0
+                  ? "bg-zinc-800 text-zinc-600 cursor-not-allowed"
+                  : "bg-zinc-700 text-white hover:bg-zinc-600 active:scale-95 shadow-lg"
               }`}
             >
               &larr; Balik
@@ -314,7 +369,9 @@ export default function Home() {
               onClick={nextSheet}
               disabled={currentSheet === sheets.length}
               className={`px-6 py-2 rounded-full font-bold transition-all ${
-                currentSheet === sheets.length ? "bg-zinc-800 text-zinc-600 cursor-not-allowed" : "bg-yellow-600 text-white hover:bg-yellow-500 active:scale-95 shadow-lg shadow-yellow-900/50"
+                currentSheet === sheets.length
+                  ? "bg-zinc-800 text-zinc-600 cursor-not-allowed"
+                  : "bg-yellow-600 text-white hover:bg-yellow-500 active:scale-95 shadow-lg shadow-yellow-900/50"
               }`}
             >
               Lanjut &rarr;
