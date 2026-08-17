@@ -1065,7 +1065,7 @@ export default function MiniGamePage() {
       </h1>
 
       {/* Kerangka Grid 4 Mini Game */}
-      <div className="grid grid-cols-2 gap-4 w-full h-full max-h-[70%]">
+      <div className="grid grid-cols-2 gap-4 w-full h-full max-h-[70%] ml-10">
         {/* SLOT GAME 1: SKY JUMP */}
         <div 
           onClick={() => setActiveGame("skyjump")}
