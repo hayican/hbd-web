@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import MiniGamePage from "./components/MiniGamePage"; 
 import MessagePage from "./components/MessagePage";
+import VinylRecord from "./components/Vinylrecord";
+import CandleCake from "./components/CandleCake";
 
 export default function Home() {
   const [isOpened, setIsOpened] = useState(false);
@@ -76,7 +78,7 @@ export default function Home() {
       bgMusicRef.current.loop = true;
       bgMusicRef.current.volume = 1.0;
     }
-    
+
     if (bgMusicRef.current.paused) {
       const playPromise = bgMusicRef.current.play();
       if (playPromise !== undefined) {
@@ -124,7 +126,7 @@ export default function Home() {
     setCurrentSheet((prev) => {
       if (prev >= sheets.length) return prev;
       playFlipSound();
-      setAnimatingIndex(prev); 
+      setAnimatingIndex(prev);
       setTimeout(() => setAnimatingIndex(null), 850);
       return prev + 1;
     });
@@ -134,7 +136,7 @@ export default function Home() {
     setCurrentSheet((prev) => {
       if (prev <= 0) return prev;
       playFlipSound();
-      setAnimatingIndex(prev - 1); 
+      setAnimatingIndex(prev - 1);
       setTimeout(() => setAnimatingIndex(null), 850);
       return prev - 1;
     });
@@ -208,7 +210,7 @@ export default function Home() {
             src={item.src}
             drag={!isOpened}
             dragMomentum={false}
-            onDragStart={handleDragStart} 
+            onDragStart={handleDragStart}
             initial={{ rotate: item.rotate }}
             animate={{ opacity: isOpened ? 0 : 1 }}
             transition={{ opacity: { duration: 0.6 } }}
@@ -286,9 +288,11 @@ export default function Home() {
                     style={{ backfaceVisibility: "hidden" }}
                   >
                     <img src={sheet.front} className="w-full h-full object-cover" alt="Front" />
-                    
+
                     {/* ====== MINI GAME DI-INJECT DI SINI ====== */}
                     {index === 2 && <MiniGamePage />}
+                    {/* ====== HALAMAN KUE: TIUP LILIN -> CONFETTI ====== */}
+                    {index === 4 && <CandleCake />}
                     {/* ========================================= */}
 
                     <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-black/50 to-transparent z-10 pointer-events-none" />
@@ -333,6 +337,13 @@ export default function Home() {
                     style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                   >
                     <img src={sheet.back} className="w-full h-full object-cover" alt="Back" />
+
+                    {/* ====== HALAMAN MUSIK: PIRINGAN HITAM ====== */}
+                    {index === 3 && (
+                      <VinylRecord bgMusicRef={bgMusicRef} isActive={currentSheet === 4} />
+                    )}
+                    {/* ============================================ */}
+
                     <div className="absolute top-0 bottom-0 right-0 w-8 bg-gradient-to-l from-black/50 to-transparent z-10 pointer-events-none" />
                     <div className="absolute top-0 bottom-0 left-0 w-[3px] bg-gradient-to-r from-black/25 to-transparent z-10 pointer-events-none" />
                     {isAnimating && (
