@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom"; // <-- Ditambahkan
 import { Architects_Daughter } from "next/font/google";
 
 const architectsDaughter = Architects_Daughter({
@@ -989,16 +990,21 @@ function CoinGrabberGame({ onWin, onClose, targetScore = 15, timeLimit = 30 }: {
 export default function MiniGamePage() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
 
+  // Mencegah interaksi tembus ke elemen di bawahnya
+  const handleWrapperClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
   return (
     <div 
       className="absolute inset-0 flex flex-col items-center pt-16 px-8 pb-12 z-20 overflow-hidden select-none"
-      onClick={(e) => e.stopPropagation()}
+      onClick={handleWrapperClick}
     >
       {/* POP-UP OVERLAY UNTUK SEMUA GAME */}
       {activeGame !== null && (
         <div 
           className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4"
-          onClick={(e) => e.stopPropagation()}
+          onClick={handleWrapperClick}
         >
           <div className="w-full max-w-[360px] md:max-w-[400px] flex justify-between items-center mb-3 px-1">
             <button

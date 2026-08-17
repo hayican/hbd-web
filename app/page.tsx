@@ -3,7 +3,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import MiniGamePage from "./components/MiniGamePage"; // <-- Import komponen di sini
+import MiniGamePage from "./components/MiniGamePage"; 
+import MessagePage from "./components/MessagePage";
 
 export default function Home() {
   const [isOpened, setIsOpened] = useState(false);
@@ -289,6 +290,30 @@ export default function Home() {
                     {/* ====== MINI GAME DI-INJECT DI SINI ====== */}
                     {index === 2 && <MiniGamePage />}
                     {/* ========================================= */}
+
+                    <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-black/50 to-transparent z-10 pointer-events-none" />
+                    <div className="absolute top-0 bottom-0 right-0 w-[3px] bg-gradient-to-l from-black/25 to-transparent z-10 pointer-events-none" />
+                    {isAnimating && (
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-black/0 via-black/40 to-black/0 pointer-events-none z-20"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: [0, 0.9, 0] }}
+                        transition={{ duration: 0.8, ease: "easeInOut", times: [0, 0.5, 1] }}
+                      />
+                    )}
+                  </div>
+
+                  {/* SISI DEPAN KERTAS (Halaman Kanan) */}
+                  <div
+                    className="absolute inset-0 bg-[#f4e8d4] rounded-r-lg overflow-hidden"
+                    style={{ backfaceVisibility: "hidden" }}
+                  >
+                    <img src={sheet.front} className="w-full h-full object-cover" alt="Front" />
+                    
+                    {/* ====== KOMPONEN INJECT ====== */}
+                    {index === 2 && <MiniGamePage />}
+                    {index === 3 && <MessagePage />}  {/* <-- TAMBAHKAN BARIS INI */}
+                    {/* =============================== */}
 
                     <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-black/50 to-transparent z-10 pointer-events-none" />
                     <div className="absolute top-0 bottom-0 right-0 w-[3px] bg-gradient-to-l from-black/25 to-transparent z-10 pointer-events-none" />
